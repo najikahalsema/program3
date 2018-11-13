@@ -1,10 +1,3 @@
-/***************************************************************************
-
-Loads an image (JPEG or GIF), displays it, selects from
-a small set of image processing routines, and shows the results
-
-***************************************************************************/
-
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.*;
@@ -24,15 +17,13 @@ public class UIView extends JFrame {
    // Instance variables
    private BufferedImage image;   // the image
    private MyImageObj view;       // a component in which to display an image
-   private JLabel infoLabel;      // an informative label for the simple GUI
-   private JButton SharpenButton; // Button to trigger sharpen operator
-   private JButton BlurButton;    // Button to trigger blur operator
-   private JButton EdgeButton;    // Button to trigger edge detect operator
-   private JButton OriginalButton;// Button to restore original image
+   private JButton PreviewButtonRL;    // Button to trigger blur operator
+   private JButton PreviewButtonLR;    // Button to trigger edge detect operator
+   private JButton ResetButton;// Button to restore original image
    private int x, y;              // Store x, y mouse position for paint
    private boolean firstdrag=true;// Flag to toggle draw mode
-   private JLabel ThreshLabel;   // Label for threshold slider
-   private JSlider thresholdslider;
+   private JLabel FpsLabel;   // Label for threshold slider
+   private JSlider FpsSlider;
 
    // Constructor for the frame
    public UIView () {
@@ -96,26 +87,22 @@ public class UIView extends JFrame {
 
       // Create components to in which to display image and GUI controls
       // reads a default image
-      view = new MyImageObj(readImage("boat.gif"));
+      view = new MyImageObj(readImage("3.jpg"));
       //view = new MyImageObj();
-      infoLabel = new JLabel("Original Image");
-      OriginalButton = new JButton("Original");
-      SharpenButton = new JButton("Sharpen");
-      BlurButton = new JButton("Blur");
-      EdgeButton = new JButton("Edges");
-      ThreshLabel = new JLabel("Threshold Value: 128");
-      thresholdslider = new JSlider( SwingConstants.VERTICAL, 0, 255, 10);
-      thresholdslider.setMajorTickSpacing(10);
-      thresholdslider.setPaintTicks(true);
+      ResetButton = new JButton("Reset");
+      PreviewButtonRL = new JButton("Preview R --> L");
+      PreviewButtonLR = new JButton("Preview L --> R");
+      FpsLabel = new JLabel("Frames per second: 30");
+      FpsSlider = new JSlider( SwingConstants.VERTICAL, 1, 60, 30);
+      FpsSlider.setMajorTickSpacing(5);
+      FpsSlider.setPaintTicks(true);
 
       // slider event triggers a display of thresholded image
-      thresholdslider.addChangeListener(
+      FpsSlider.addChangeListener(
          new ChangeListener() {
 	    public void stateChanged (ChangeEvent e) {
-	       view.ThresholdImage(thresholdslider.getValue());
-               infoLabel.setText("Thresholded Image");
-	       ThreshLabel.setText("Threshold Value: " +
-                       Integer.toString(thresholdslider.getValue()));
+	       FpsLabel.setText("Frames per Second: " +
+                       Integer.toString(FpsSlider.getValue()));
             }
          }
       );
@@ -169,36 +156,25 @@ public class UIView extends JFrame {
 
       // Button listeners activate the buffered image object in order
       // to display appropriate function
-      OriginalButton.addActionListener(
+      ResetButton.addActionListener(
 	 new ActionListener () {
              public void actionPerformed (ActionEvent e) {
                 view.showImage();
-                infoLabel.setText("Original");
              }
          }
       );
-      SharpenButton.addActionListener(
+      PreviewButtonRL.addActionListener(
 	 new ActionListener () {
              public void actionPerformed (ActionEvent e) {
-                view.SharpenImage();
-                infoLabel.setText("Sharpened");
+                view.PreviewRL();
              }
          }
       );
-      BlurButton.addActionListener(
+      PreviewButtonLR.addActionListener(
 	 new ActionListener () {
              public void actionPerformed (ActionEvent e) {
-                view.BlurImage();
-                infoLabel.setText("Blur");
-             }
-         }
-      );
-      EdgeButton.addActionListener(
-	 new ActionListener () {
-             public void actionPerformed (ActionEvent e) {
-                view.EdgeImage();
+                view.PreviewLR();
                 view.repaint();
-                infoLabel.setText("Edges");
              }
          }
       );
@@ -213,24 +189,22 @@ public class UIView extends JFrame {
       JPanel controlPanel = new JPanel();
       GridLayout grid = new GridLayout (1, 5);
       controlPanel.setLayout(grid);
-      controlPanel.add(infoLabel);
-      controlPanel.add(OriginalButton);
-      controlPanel.add(SharpenButton);
-      controlPanel.add(BlurButton);
-      controlPanel.add(EdgeButton);
+      controlPanel.add(ResetButton);
+      controlPanel.add(PreviewButtonRL);
+      controlPanel.add(PreviewButtonLR);
 
       // Build second JPanel
-      JPanel thresholdcontrolPanel = new JPanel();
+      JPanel FpsControl = new JPanel();
       BorderLayout layout = new BorderLayout (5, 5);
-      thresholdcontrolPanel.setLayout (layout);
-      thresholdcontrolPanel.add(ThreshLabel,BorderLayout.NORTH);
-      thresholdcontrolPanel.add(thresholdslider,BorderLayout.CENTER);
+      FpsControl.setLayout (layout);
+      FpsControl.add(FpsLabel,BorderLayout.NORTH);
+      FpsControl.add(FpsSlider,BorderLayout.CENTER);
 
       // Add panels and image data component to the JFrame
       Container c = this.getContentPane();
       c.add(view, BorderLayout.EAST);
       c.add(controlPanel, BorderLayout.SOUTH);
-      c.add(thresholdcontrolPanel, BorderLayout.WEST);
+      c.add(FpsControl, BorderLayout.WEST);
    }
 
    // This method reads an Image object from a file indicated by
@@ -292,47 +266,6 @@ public class UIView extends JFrame {
       //  tell the paintcomponent method what to draw 
       private boolean showfiltered=false;
 
-      // here are a few kernels to try
-      private final float[] LOWPASS3x3 = 
-                     {0.1f, 0.1f, 0.1f, 0.1f, 0.2f, 0.1f, 0.1f, 0.1f, 0.1f};
-      private final float[] GAUSS5x5SD1 = 
-		{0.003765f, 0.015019f, 0.023792f, 0.015019f, 0.003765f,
-		 0.015019f, 0.059912f, 0.094907f, 0.059912f, 0.015019f,
-		 0.023792f, 0.094907f, 0.150342f, 0.094907f, 0.023792f,
-		 0.015019f, 0.059912f, 0.094907f, 0.059912f, 0.015019f,
-		 0.003765f, 0.015019f, 0.023792f, 0.015019f, 0.003765f};
-      private final float[] GAUSS5x5SD2 = 
-		{0.023528f, 0.033969f, 0.038393f, 0.033969f, 0.023528f,
-		 0.033969f, 0.049045f, 0.055432f, 0.049045f, 0.033969f,
-		 0.038393f, 0.055432f, 0.062651f, 0.055432f, 0.038393f,
-		 0.033969f, 0.049045f, 0.055432f, 0.049045f, 0.033969f,
-		 0.023528f, 0.033969f, 0.038393f, 0.033969f, 0.023528f};
-      private final float[] GAUSS5x5SD3 = 
-		{0.031827f, 0.037541f, 0.039665f, 0.037541f, 0.031827f,
-		 0.037541f, 0.044281f, 0.046787f, 0.044281f, 0.037541f,
-		 0.039665f, 0.046787f, 0.049434f, 0.046787f, 0.039665f,
-		 0.037541f, 0.044281f, 0.046787f, 0.044281f, 0.037541f,
-		 0.031827f, 0.037541f, 0.039665f, 0.037541f, 0.031827f};
-
-      private final float[] GAUSS11x11SD3 = 
-{0.001283f, 0.002106f, 0.003096f, 0.004077f, 0.004809f, 0.005081f, 0.004809f, 0.004077f, 0.003096f, 0.002106f, 0.001283f,
-0.002106f, 0.003456f, 0.005081f, 0.006691f, 0.007892f, 0.008339f, 0.007892f, 0.006691f, 0.005081f, 0.003456f, 0.002106f,
-0.003096f, 0.005081f, 0.007469f, 0.009836f, 0.011602f, 0.012258f, 0.011602f, 0.009836f, 0.007469f, 0.005081f, 0.003096f,
-0.004077f, 0.006691f, 0.009836f, 0.012952f, 0.015277f, 0.016142f, 0.015277f, 0.012952f, 0.009836f, 0.006691f, 0.004077f,
-0.004809f, 0.007892f, 0.011602f, 0.015277f, 0.01802f, 0.01904f, 0.01802f, 0.015277f, 0.011602f, 0.007892f, 0.004809f,
-0.005081f, 0.008339f, 0.012258f, 0.016142f, 0.01904f, 0.020117f, 0.01904f, 0.016142f, 0.012258f, 0.008339f, 0.005081f,
-0.004809f, 0.007892f, 0.011602f, 0.015277f, 0.01802f, 0.01904f, 0.01802f, 0.015277f, 0.011602f, 0.007892f, 0.004809f,
-0.004077f, 0.006691f, 0.009836f, 0.012952f, 0.015277f, 0.016142f, 0.015277f, 0.012952f, 0.009836f, 0.006691f, 0.004077f,
-0.003096f, 0.005081f, 0.007469f, 0.009836f, 0.011602f, 0.012258f, 0.011602f, 0.009836f, 0.007469f, 0.005081f, 0.003096f,
-0.002106f, 0.003456f, 0.005081f, 0.006691f, 0.007892f, 0.008339f, 0.007892f, 0.006691f, 0.005081f, 0.003456f, 0.002106f,
-0.001283f, 0.002106f, 0.003096f, 0.004077f, 0.004809f, 0.005081f, 0.004809f, 0.004077f, 0.003096f, 0.002106f, 0.001283f};
-
-
-      private final float[] SHARPEN3x3 = 
-                     {0.f, -1.f, 0.f, -1.f, 5.f, -1.f, 0.f, -1.f, 0.f};
-      private final float[] EDGE3x3 = 
-                     {0.f, -1.f, 0.f, -1.f, 4.0f, -1.f, 0.f, -1.f, 0.f};
-
       // Default constructor
       public MyImageObj() {
       }
@@ -348,119 +281,50 @@ public class UIView extends JFrame {
       }
 
       // This mutator changes the image by resetting what is stored
-      // The input parameter img is the new image;  it gets stored as an
-      //     instance variable
-      public void setImage(BufferedImage img) {
-         if (img == null) return;
-         bim = img;
-         filteredbim = new BufferedImage 
-            (bim.getWidth(), bim.getHeight(), BufferedImage.TYPE_INT_RGB);
-         setPreferredSize(new Dimension(bim.getWidth(), bim.getHeight()));
-	 showfiltered=false;
-         this.repaint();
+      // The input parameter img is the new image;  it gets stored as an instance var
+       // Keeping this function just in case we need to use it later
+       public void setImage(BufferedImage img) {
+          if (img == null) return;
+          bim = img;
+          filteredbim = new BufferedImage
+                  (bim.getWidth(), bim.getHeight(), BufferedImage.TYPE_INT_RGB);
+          setPreferredSize(new Dimension(bim.getWidth(), bim.getHeight()));
+          showfiltered=false;
+          this.repaint();
       }
 
       // accessor to get a handle to the bufferedimage object stored here
       public BufferedImage getImage() {
-         return bim;
-      }
-
-      //  apply the sharpen operator
-      public void SharpenImage() {
-         if (bim == null) return;
-	 Kernel kernel = new Kernel (3, 3, SHARPEN3x3);
- 	 ConvolveOp cop = new ConvolveOp (kernel, ConvolveOp.EDGE_NO_OP, null);
-
-         // make a copy of the buffered image
-         BufferedImage newbim = new BufferedImage
-             (bim.getWidth(), bim.getHeight(),
-             BufferedImage.TYPE_INT_RGB);
-         Graphics2D big = newbim.createGraphics();
-             big.drawImage (bim, 0, 0, null);
-
-         // apply the filter the copied image 
-         // result goes to a filtered copy
-	 cop.filter(newbim, filteredbim);
-	 showfiltered=true;
-	 this.repaint();
+          return bim;
       }
 
       //  apply the blur operator
-      public void BlurImage() {
+      public void PreviewRL() {
          if (bim == null) return;
-	 //Kernel kernel = new Kernel (3, 3, LOWPASS3x3);
-	 Kernel kernel = new Kernel (5, 5, GAUSS5x5SD1);
-	 //Kernel kernel = new Kernel (11, 11, GAUSS11x11SD3);
-	 //Kernel kernel = new Kernel (11, 11, GAUSS11x11SD1);
- 	 ConvolveOp cop = new ConvolveOp (kernel, ConvolveOp.EDGE_NO_OP, null);
-
-         // make a copy of the buffered image
-         BufferedImage newbim = new BufferedImage
-             (bim.getWidth(), bim.getHeight(),
-             BufferedImage.TYPE_INT_RGB);
-         Graphics2D big = newbim.createGraphics();
-             big.drawImage (bim, 0, 0, null);
-
-         // apply the filter the copied image 
-         // result goes to a filtered copy
-         cop.filter(newbim, filteredbim);
          showfiltered=true;
          this.repaint();
       }
 
       //  apply the detect-edge operator
-      public void EdgeImage() {
+      public void PreviewLR() {
          if (bim == null) return;
-	 Kernel kernel = new Kernel (3, 3, EDGE3x3);
- 	 ConvolveOp cop = new ConvolveOp (kernel, ConvolveOp.EDGE_NO_OP, null);
-
-         // make a copy of the buffered image
-         BufferedImage newbim = new BufferedImage
-             (bim.getWidth(), bim.getHeight(),
-             BufferedImage.TYPE_INT_RGB);
-         Graphics2D big = newbim.createGraphics();
-             big.drawImage (bim, 0, 0, null);
-
-         // apply the filter the copied image 
-         // result goes to a filtered copy
-         cop.filter(newbim, filteredbim);
-	 showfiltered=true;
-	 this.repaint();
-      }
-      //  apply the threshold operator via colormap lookup table
-      //  input parameter is an integer indicating the threshold value
-      public void ThresholdImage(int value) {
-         if (bim == null) return;
-         int i;
-	 byte thresh[] = new byte[256];
-         if ((value < 0) || (value > 255))
-	    value = 128;
-	 for (i=0; i < value; i++)
-	    thresh[i] = 0;
-         for (int j=i; j < 255; j++)
-	    thresh[j] = (byte)255;
-         ByteLookupTable blut = new ByteLookupTable (0, thresh);
-         LookupOp lop = new LookupOp (blut, null);
-         lop.filter (bim, filteredbim);
-	 showfiltered=true;
-	 this.repaint();
+         showfiltered=true;
+         this.repaint();
       }
 
       //  show current image by a scheduled call to paint()
       public void showImage() {
          if (bim == null) return;
-	 showfiltered=false;
-	 this.repaint();
+         showfiltered=false;
+         this.repaint();
       }
 
       //  get a graphics context and show either filtered image or
       //  regular image
       public void paintComponent(Graphics g) {
-	 Graphics2D big = (Graphics2D) g;
-	 if (showfiltered)
-            big.drawImage(filteredbim, 0, 0, this);
-         else
-            big.drawImage(bim, 0, 0, this);
+          Graphics2D big = (Graphics2D) g;
+          if (showfiltered) big.drawImage(filteredbim, 0, 0, this);
+          else big.drawImage(bim, 0, 0, this);
       }
    }
 
