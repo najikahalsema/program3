@@ -38,11 +38,12 @@ public class UIView extends JFrame {
         JMenuBar bar = new JMenuBar();
         this.setJMenuBar(bar);
         JMenu fileMenu = new JMenu("File");
-        JMenuItem fileopen = new JMenuItem("Open");
+        JMenuItem openLeft = new JMenuItem("Open Left");
+        JMenuItem openRight = new JMenuItem("Open Right");
         JMenuItem fileexit = new JMenuItem("Exit");
 
-        // change so that it works for both
-        fileopen.addActionListener(
+        // action listener to change the left image
+        openLeft.addActionListener(
                 new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                         int returnVal = fc.showOpenDialog(UIView.this);
@@ -60,6 +61,22 @@ public class UIView extends JFrame {
                     }
                 }
         );
+        // open a new file to use as the right image
+        openRight.addActionListener(
+                new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        int returnVal = fc.showOpenDialog(UIView.this);
+                        if (returnVal == JFileChooser.APPROVE_OPTION) {
+                            File file = fc.getSelectedFile();
+                            try {
+                                rightImage = ImageIO.read(file);
+                            } catch (IOException e2) {};
+                            rightView.setImage(rightImage);
+                            rightView.showImage();
+                        }
+                    }
+                }
+        );
         fileexit.addActionListener(
                 new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
@@ -68,7 +85,8 @@ public class UIView extends JFrame {
                 }
         );
 
-        fileMenu.add(fileopen);
+        fileMenu.add(openLeft);
+        fileMenu.add(openRight);
         fileMenu.add(fileexit);
         bar.add(fileMenu);
     }
@@ -97,7 +115,7 @@ public class UIView extends JFrame {
                     }
                 }
         );
-        // Listen for mouse events to allow painting on image
+        /* Listen for mouse events to allow painting on image
         leftView.addMouseMotionListener(
                 new MouseMotionAdapter() {
                     public void mouseDragged(MouseEvent event) {
@@ -139,7 +157,7 @@ public class UIView extends JFrame {
                         g.drawLine(w, 0, x, y);
                     }
                 }
-        );
+        );*/
         // Button listeners activate the buffered image object in order
         // to display appropriate function
         ResetButton.addActionListener(
@@ -161,7 +179,7 @@ public class UIView extends JFrame {
         PreviewButtonLR.addActionListener(
                 new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        leftView.PreviewLR();
+                        leftView.PreviewLR(leftImage);
                         leftView.repaint();
                     }
                 }
@@ -180,8 +198,12 @@ public class UIView extends JFrame {
         controlPanel.add(PreviewButtonLR);
 
         // Build second JPanel
+        /**** To do:
+         * Potentially change the Layout style to allow for more fluid resizing
+         * of components
+         */
         JPanel FpsControl = new JPanel();
-        BorderLayout layout = new BorderLayout(5, 5);
+        BorderLayout layout = new BorderLayout(0,0);
         FpsControl.setLayout(layout);
         FpsControl.add(FpsLabel, BorderLayout.NORTH);
         FpsControl.add(FpsSlider, BorderLayout.CENTER);
@@ -190,15 +212,13 @@ public class UIView extends JFrame {
         Container c = this.getContentPane();
         c.add(leftView, BorderLayout.CENTER);
         c.add(rightView, BorderLayout.EAST);
-        c.add(controlPanel, BorderLayout.SOUTH);
-        c.add(FpsControl, BorderLayout.WEST);
+        c.add(controlPanel, BorderLayout.PAGE_END);
+        c.add(FpsControl, BorderLayout.LINE_START);
     }
     // This method reads an Image object from a file indicated by
     // the string provided as the parameter.  The image is converted
     // here to a BufferedImage object, and that new object is the returned
     // value of this method.
-    // The mediatracker in this method can throw an exception
-
     public BufferedImage readImage(String file) {
 
         Image image = Toolkit.getDefaultToolkit().getImage(file);
@@ -220,6 +240,7 @@ public class UIView extends JFrame {
     public static void main(String[] argv) {
 
         JFrame frame = new UIView();
+        frame.setPreferredSize(new Dimension(700,400));
         frame.pack();
         frame.setVisible(true);
         frame.addWindowListener(
@@ -257,10 +278,7 @@ public class UIView extends JFrame {
 
             this.repaint();
         }
-
-        // This mutator changes the image by resetting what is stored
-        // The input parameter img is the new image;  it gets stored as an instance var
-        // Keeping this function just in case we need to use it later
+        // changes the image by resetting what is stored
         public void setImage(BufferedImage img) {
             if (img == null) return;
             bim = img;
@@ -270,24 +288,32 @@ public class UIView extends JFrame {
             showfiltered=false;
             this.repaint();
         }
-
         // accessor to get a handle to the bufferedimage object stored here
         public BufferedImage getImage() {
             return bim;
         }
 
-        //  apply the blur operator
+        //  Preview the transformation of the image from right to left
         public void PreviewRL() {
             if (bim == null) return;
-            showfiltered=true;
+            showfiltered = true;
             this.repaint();
         }
 
-        //  apply the detect-edge operator
-        public void PreviewLR() {
+        //  Preview the transformation of the image from left to right
+        public void PreviewLR(BufferedImage img) {
             if (bim == null) return;
-            showfiltered=true;
-            this.repaint();
+            // creating the temporary JFrame to preview the transformation
+            JFrame frame = new JFrame("Preview");
+            frame.setDefaultCloseOperation(frame.DISPOSE_ON_CLOSE);
+            JPanel preview = new JPanel();
+            preview.add(img);
+            showfiltered = true;
+
+            frame.add(preview);
+            frame.pack();
+            frame.setLocationByPlatform(true);
+            frame.setVisible(true);
         }
 
         //  show current image by a scheduled call to paint()
