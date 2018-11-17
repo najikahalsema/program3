@@ -10,4 +10,11 @@ public class Edge {
         this.point1 = point1;
         this.point2 = point2;
     }
+
+    public GridPoint GetPoint1() {
+        return point1;
+    }
+    public GridPoint GetPoint2() {
+        return point2;
+    }
 }
