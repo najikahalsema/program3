@@ -1,3 +1,9 @@
+/**** To do:
+ * Find the proper method to override so that the image doesn't keep disappearing after
+ * clicking on the slider
+ * Allow for more control regarding image sizes.
+ */
+
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.*;
@@ -17,8 +23,6 @@ public class UIView extends JFrame {
     private JButton PreviewButtonRL;
     private JButton PreviewButtonLR;
     private JButton ResetButton;
-    private int x, y;
-    private boolean firstdrag = true;
     private JLabel FpsLabel;
     private JSlider FpsSlider;
 
@@ -51,10 +55,7 @@ public class UIView extends JFrame {
                             File file = fc.getSelectedFile();
                             try {
                                 leftImage = ImageIO.read(file);
-                            } catch (IOException e1) {
-                            }
-                            ;
-
+                            } catch (IOException e1) {};
                             leftView.setImage(leftImage);
                             leftView.showImage();
                         }
@@ -98,7 +99,6 @@ public class UIView extends JFrame {
     private void buildComponents() {
         leftView = new ViewController(readImage("3.jpg"));
         rightView = new ViewController(readImage("3.jpg"));
-        //view = new ViewController();
         ResetButton = new JButton("Reset");
         PreviewButtonRL = new JButton("Preview R --> L");
         PreviewButtonLR = new JButton("Preview L --> R");
@@ -115,49 +115,6 @@ public class UIView extends JFrame {
                     }
                 }
         );
-        /* Listen for mouse events to allow painting on image
-        leftView.addMouseMotionListener(
-                new MouseMotionAdapter() {
-                    public void mouseDragged(MouseEvent event) {
-                        Graphics g = leftView.getGraphics();
-                        g.setColor(Color.white);
-                        if (firstdrag) {
-                            x = event.getX();
-                            y = event.getY();
-                            firstdrag = false;
-                        } else {
-                            leftView.showImage();
-                            x = event.getX();
-                            y = event.getY();
-                            int w = leftView.getImage().getWidth();
-                            int h = leftView.getImage().getHeight();
-                            g.fillOval(x - 5, y - 5, 10, 10);
-                            g.drawLine(0, 0, x, y);
-                            g.drawLine(0, h, x, y);
-                            g.drawLine(w, h, x, y);
-                            g.drawLine(w, 0, x, y);
-                        }
-                    }
-                }
-        );
-        // Listen for mouse release to detect when we've stopped painting
-        leftView.addMouseListener(
-                new MouseAdapter() {
-                    public void mouseReleased(MouseEvent event) {
-                        Graphics g = leftView.getGraphics();
-                        firstdrag = true;
-                        x = event.getX();
-                        y = event.getY();
-                        int w = leftView.getImage().getWidth();
-                        int h = leftView.getImage().getHeight();
-                        g.fillOval(x - 5, y - 5, 10, 10);
-                        g.drawLine(0, 0, x, y);
-                        g.drawLine(0, h, x, y);
-                        g.drawLine(w, h, x, y);
-                        g.drawLine(w, 0, x, y);
-                    }
-                }
-        );*/
         // Button listeners activate the buffered image object in order
         // to display appropriate function
         ResetButton.addActionListener(
@@ -179,7 +136,7 @@ public class UIView extends JFrame {
         PreviewButtonLR.addActionListener(
                 new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        leftView.PreviewLR(leftImage);
+                        leftView.PreviewLR();
                         leftView.repaint();
                     }
                 }
@@ -191,29 +148,33 @@ public class UIView extends JFrame {
 
         // Build first JPanel
         JPanel controlPanel = new JPanel();
-        GridLayout grid = new GridLayout(1, 5);
+        GridLayout grid = new GridLayout(1, 3);
         controlPanel.setLayout(grid);
         controlPanel.add(ResetButton);
         controlPanel.add(PreviewButtonRL);
         controlPanel.add(PreviewButtonLR);
 
         // Build second JPanel
-        /**** To do:
-         * Potentially change the Layout style to allow for more fluid resizing
-         * of components
-         */
         JPanel FpsControl = new JPanel();
-        BorderLayout layout = new BorderLayout(0,0);
+        BorderLayout layout = new BorderLayout();
         FpsControl.setLayout(layout);
         FpsControl.add(FpsLabel, BorderLayout.NORTH);
         FpsControl.add(FpsSlider, BorderLayout.CENTER);
 
-        // Add panels and image data component to the JFrame
+        // Add panels and image data component to the main container
+        JPanel imageControl = new JPanel();
+        GridLayout imageGrid = new GridLayout(1,3);
+        imageControl.setLayout(imageGrid);
+        imageControl.add(FpsControl);
+        imageControl.add(leftView);
+        imageControl.add(rightView);
+
         Container c = this.getContentPane();
-        c.add(leftView, BorderLayout.CENTER);
-        c.add(rightView, BorderLayout.EAST);
-        c.add(controlPanel, BorderLayout.PAGE_END);
-        c.add(FpsControl, BorderLayout.LINE_START);
+        //c.add(leftView, BorderLayout.CENTER);
+        //c.add(rightView, BorderLayout.EAST);
+        c.add(controlPanel, BorderLayout.SOUTH);
+        c.add(imageControl, BorderLayout.EAST);
+        //c.add(FpsControl, BorderLayout.LINE_START);
     }
     // This method reads an Image object from a file indicated by
     // the string provided as the parameter.  The image is converted
@@ -227,11 +188,9 @@ public class UIView extends JFrame {
         tracker.addImage(image, 0);
         try {
             tracker.waitForID(0);
-        } catch (InterruptedException e) {
-        }
+        } catch (InterruptedException e) {}
         BufferedImage bim = new BufferedImage
-                (image.getWidth(this), image.getHeight(this),
-                        BufferedImage.TYPE_INT_RGB);
+                (image.getWidth(this), image.getHeight(this), BufferedImage.TYPE_INT_RGB);
         Graphics2D big = bim.createGraphics();
         big.drawImage(image, 0, 0, this);
 
@@ -242,6 +201,7 @@ public class UIView extends JFrame {
         JFrame frame = new UIView();
         frame.setPreferredSize(new Dimension(700,400));
         frame.pack();
+        frame.setLocationByPlatform(true);
         frame.setVisible(true);
         frame.addWindowListener(
                 new WindowAdapter() {
@@ -259,11 +219,11 @@ public class UIView extends JFrame {
     public class ViewController extends JLabel {
 
         // instance variable to hold the buffered image
-        public BufferedImage bim=null;
-        public BufferedImage filteredbim=null;
+        public BufferedImage bim = null;
+        public BufferedImage filteredbim = null;
 
         //  tell the paintcomponent method what to draw
-        private boolean showfiltered=false;
+        private boolean showfiltered = false;
 
         // Default constructor
         public ViewController() {
@@ -285,7 +245,7 @@ public class UIView extends JFrame {
             filteredbim = new BufferedImage
                     (bim.getWidth(), bim.getHeight(), BufferedImage.TYPE_INT_RGB);
             setPreferredSize(new Dimension(bim.getWidth(), bim.getHeight()));
-            showfiltered=false;
+            showfiltered = false;
             this.repaint();
         }
         // accessor to get a handle to the bufferedimage object stored here
@@ -296,19 +256,14 @@ public class UIView extends JFrame {
         //  Preview the transformation of the image from right to left
         public void PreviewRL() {
             if (bim == null) return;
-            showfiltered = true;
-            this.repaint();
-        }
-
-        //  Preview the transformation of the image from left to right
-        public void PreviewLR(BufferedImage img) {
-            if (bim == null) return;
             // creating the temporary JFrame to preview the transformation
             JFrame frame = new JFrame("Preview");
             frame.setDefaultCloseOperation(frame.DISPOSE_ON_CLOSE);
             JPanel preview = new JPanel();
-            preview.add(img);
-            showfiltered = true;
+            preview.add(this);
+            // setting this to true makes the picture black, so it's false for now.
+            // we can change that when we need to display the image.
+            showfiltered = false;
 
             frame.add(preview);
             frame.pack();
@@ -316,15 +271,31 @@ public class UIView extends JFrame {
             frame.setVisible(true);
         }
 
+        //  Preview the transformation of the image from left to right
+        public void PreviewLR() {
+            if (bim == null) return;
+            // creating the temporary JFrame to preview the transformation
+            JFrame frame = new JFrame("Preview");
+            frame.setDefaultCloseOperation(frame.DISPOSE_ON_CLOSE);
+            JPanel preview = new JPanel();
+            preview.add(this);
+            showfiltered = false;
+
+            frame.add(preview);
+            frame.pack();
+            frame.setLocationByPlatform(true);
+            frame.setVisible(true);
+        }
         //  show current image by a scheduled call to paint()
         public void showImage() {
             if (bim == null) return;
-            showfiltered=false;
+            showfiltered = false;
             this.repaint();
         }
 
         //  get a graphics context and show either filtered image or
         //  regular image
+        @Override
         public void paintComponent(Graphics g) {
             Graphics2D big = (Graphics2D) g;
             if (showfiltered) big.drawImage(filteredbim, 0, 0, this);
