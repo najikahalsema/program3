@@ -166,7 +166,7 @@ public class GridManager {
                 popup.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                 popup.add(preview_grid);
                 popup.setVisible(true);
-                preview_grid.Morph(manage.grid1, manage.grid2, 30, 3);
+                preview_grid.Morph(manage.grid1, manage.grid2, 30, 1);
             }
         });
     }

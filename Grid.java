@@ -169,31 +169,37 @@ public class Grid extends JPanel {
     }
 
     public void Morph(Grid start, Grid end, int fps, int seconds) {
-        //Grid midgrid = new Grid();
         ActionListener event = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (count > fps*seconds) {
-                    timer.stop();
-                }
-                for (int i = 0; i < start.points.length; i++) {
-                    System.out.println(i);
-                    for (int j = 0; j < start.points[i].length; j++) {
-                        int dx = end.points[i][j].GetX() - start.points[i][j].GetX();
-                        int dy = end.points[i][j].GetY() - start.points[i][j].GetY();
-                        int curr_x = points[i][j].GetX();
-                        int curr_y = points[i][j].GetY();
-                        points[i][j].SetXY(curr_x + dx/(fps*seconds), curr_y + dy/(fps*seconds));
-                        if (i == start.points.length - 1 && j == start.points[i].length - 1) {
-                            points[i][j].SetXY(end.points[i][j].GetX(), end.points[i][j].GetY());
+                System.out.println(count);
+                if (count != (fps*seconds) - 1) {
+                    for (int i = 0; i < start.points.length; i++) {
+                        for (int j = 0; j < start.points[i].length; j++) {
+                            float dx = end.points[i][j].GetX() - start.points[i][j].GetX();
+                            float dy = end.points[i][j].GetY() - start.points[i][j].GetY();
+                            int start_x = start.points[i][j].GetX();
+                            int start_y = start.points[i][j].GetY();
+                            points[i][j].SetXY(start_x + Math.round((dx / (fps * seconds))*count), start_y + Math.round((dy / (fps * seconds))*count));
+                            if (count == (fps*seconds) - 1) {
+                                points[i][j].SetXY(end.points[i][j].GetX(), end.points[i][j].GetY());
+                            }
                         }
                     }
+                    repaint();
+                    revalidate();
+                    count++;
                 }
-                repaint();
-                count++;
+                else {
+                    timer.stop();
+                    repaint();
+                    revalidate();
+                    count = 1;
+                }
             }
         };
         int interval = (int)(((float)seconds/(float)fps)*1000);
+        System.out.println(interval);
         timer = new Timer(interval, event);
         timer.start();
     }
